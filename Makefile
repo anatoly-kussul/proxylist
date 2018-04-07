@@ -9,3 +9,6 @@ flake:
 
 python:
 	docker run -it -v $(shell pwd):/app:ro proxylist:base python
+
+run:
+	docker run -it -v $(shell pwd):/app:ro proxylist:base python -m proxylist.main
