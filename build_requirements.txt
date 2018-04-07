@@ -4,6 +4,7 @@ aiosocksy==0.1
 async-timeout==2.0.1
 attrs==17.4.0
 chardet==3.0.4
+colorlog==3.1.2
 flake8==3.5.0
 idna==2.6
 idna-ssl==1.0.1
