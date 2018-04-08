@@ -31,6 +31,38 @@ async def check_ws_support(proxy, app):
     return False
 
 
+async def update_proxy_in_db(check_result, app):
+    proxy_collection = app['db'][settings.MONGO_PROXY_COLLECTION]
+    ip = check_result.pop('ip')
+    port = check_result.pop('port')
+    if check_result['active']:
+        await proxy_collection.update_one(
+            {'ip': ip, 'port': port},
+            {
+                '$inc': {
+                    'total_checks': 1,
+                    'positive_checks': 1,
+                },
+                '$set': {
+                    **check_result,
+                    'negative_checks_in_a_row': 0,
+                }
+            }
+        )
+    else:
+        await proxy_collection.update_one(
+            {'ip': ip, 'port': port},
+            {
+                '$inc': {
+                    'total_checks': 1,
+                    'negative_checks': 1,
+                    'negative_checks_in_a_row': 1,
+                },
+                '$set': check_result
+            }
+        )
+
+
 async def check_proxy(ip, port, app):
     session = app['client_session']
     pings = []
@@ -62,54 +94,17 @@ async def check_proxy(ip, port, app):
             # check ws support
             if settings.CHECK_WS_SUPPORT and await check_ws_support(proxy, app):
                 ws_support.append(protocol)
-
-    active = bool(pings)
-    ping = sum(pings)/len(pings) if pings else None
-    time_checked = time.time()
-    proxy_collection = app['db'][settings.MONGO_PROXY_COLLECTION]
-    if active:
-        await proxy_collection.update_one(
-            {'ip': ip, 'port': port},
-            {
-                '$inc': {
-                    'total_checks': 1,
-                    'positive_checks': 1,
-                },
-                '$set': {
-                    'active': active,
-                    'ping': ping,
-                    'types': types,
-                    'ws_support': ws_support,
-                    'last_check': time_checked,
-                    'negative_checks_in_a_row': 0,
-                }
-            }
-        )
-    else:
-        await proxy_collection.update_one(
-            {'ip': ip, 'port': port},
-            {
-                '$inc': {
-                    'total_checks': 1,
-                    'negative_checks': 1,
-                    'negative_checks_in_a_row': 1,
-                },
-                '$set': {
-                    'active': active,
-                    'ping': ping,
-                    'types': types,
-                    'ws_support': ws_support,
-                    'last_check': time_checked,
-                }
-            }
-        )
-
-    return {
-        'active': active,
-        'ping': ping,
+    check_result = {
+        'ip': ip,
+        'port': port,
+        'active': bool(pings),
+        'ping': sum(pings)/len(pings) if pings else None,
         'types': types,
         'ws_support': ws_support,
+        'last_check': time.time(),
     }
+    await update_proxy_in_db(check_result, app)
+    return check_result
 
 
 async def get_proxies_for_check(app):

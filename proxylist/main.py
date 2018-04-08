@@ -47,7 +47,7 @@ def main():
     loop = asyncio.get_event_loop()
     app = loop.run_until_complete(init_app(loop=loop))
     app['proxy_parser'] = run_coro_in_background(periodic(period=settings.PARSE_PERIOD)(parse_proxies)(app), loop=loop)
-    app['proxy_checker'] = run_coro_in_background(periodic(period=settings.PARSE_PERIOD)(check_proxies)(app), loop=loop)
+    app['proxy_checker'] = run_coro_in_background(periodic(period=settings.CHECK_PERIOD)(check_proxies)(app), loop=loop)
     try:
         logging.info('Proxylist started.')
         web.run_app(app, port=8080, print=logging.debug)
