@@ -1,6 +1,7 @@
 FROM python:3.6
 ENV TZ=Europe/Kiev
 RUN mkdir app
+STOPSIGNAL SIGINT
 
 #-------------------- Python requirements----
 WORKDIR /

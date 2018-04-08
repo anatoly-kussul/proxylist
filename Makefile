@@ -11,4 +11,7 @@ python:
 	docker run -it -v $(shell pwd):/app:ro proxylist:base python
 
 run:
-	docker run -it -v $(shell pwd):/app:ro proxylist:base python -m proxylist.main
+	docker-compose -f docker/docker-compose.yml up
+
+stop:
+	docker-compose -f docker/docker-compose.yml stop

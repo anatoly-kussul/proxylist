@@ -1,0 +1,18 @@
+version: '2'
+
+services:
+  mongo:
+    image: mongo:3.2
+    logging:
+      driver: "none"
+
+  dnd-club:
+    image: proxylist:base
+    container_name: proxylist
+    command: python -m proxylist.main
+    volumes:
+      - ../:/app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo
