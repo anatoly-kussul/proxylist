@@ -1,6 +1,7 @@
 import asyncio
 import time
 import logging
+from random import shuffle
 
 import aiohttp
 import async_timeout
@@ -63,6 +64,30 @@ async def update_proxy_in_db(check_result, app):
         )
 
 
+async def check_request(proxy, app):
+    session = app['client_session']
+    urls = settings.CHECK_URLS[:]
+    shuffle(urls)
+    error = None
+    for url in urls:
+        request_start = time.time()
+        try:
+            async with session.get(url, proxy=proxy, timeout=2) as response:
+                body = await response.text()
+                # if ip not in body:
+                #     raise RuntimeError(f'ip \'{ip}\' not found in body ({body})')
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            error = repr(e)
+            continue
+
+        ping = time.time() - request_start
+        logging.debug(f'Check success {proxy} with ping {ping}')
+        return ping
+    logging.debug(f'Check failed {proxy} {error}')
+
+
 async def check_proxy(ip, port, app):
     session = app['client_session']
     pings = []
@@ -74,20 +99,9 @@ async def check_proxy(ip, port, app):
         proxy = f'{protocol}://{ip}:{port}'
         logging.debug(f'Checking {proxy}')
         async with app['check_semaphore']:
-            request_start = time.time()
-            try:
-                async with session.get(url, proxy=proxy, timeout=2) as response:
-                    body = await response.text()
-                    # if ip not in body:
-                    #     raise RuntimeError(f'ip \'{ip}\' not found in body ({body})')
-            except asyncio.CancelledError:
-                raise
-            except Exception as e:
-                logging.debug(f'Check failed {proxy} {repr(e)}')
+            ping = await check_request(proxy, app)
+            if not ping:
                 continue
-
-            ping = time.time() - request_start
-            logging.debug(f'Check success {proxy} with ping {ping}')
             pings.append(ping)
             types.append(protocol)
 

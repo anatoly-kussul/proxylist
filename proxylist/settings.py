@@ -8,6 +8,10 @@ PARSE_URLS = [
 ]
 CHECK_URLS = [
     'http://httpbin.org/ip',
+    'http://api.ipify.org?format=json',
+    'http://ip-api.com/json',
+    'https://ifconfig.co/json',
+    'http://api.myip.com/',
 ]
 WS_ECHO_SERVERS = [
     'wss://echo.websocket.org?encoding=text',
@@ -19,6 +23,9 @@ CHECK_WS_SUPPORT = True
 
 PARSE_PERIOD = 300
 CHECK_PERIOD = 60
+
+PARSE_SEMAPHORE = 20
+CHECK_SEMAPHORE = 100
 
 MONGO_HOST = 'mongo'
 MONGO_PORT = 27017

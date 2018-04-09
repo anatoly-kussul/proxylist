@@ -8,6 +8,7 @@ import pymongo
 from motor import motor_asyncio
 
 from proxylist.checker import check_proxies
+from proxylist.handlers import get_proxies
 from proxylist.helpers import setup_logging, periodic, run_coro_in_background
 from proxylist.parser import parse_proxies
 from proxylist import settings
@@ -24,9 +25,10 @@ async def init_app(loop=None):
     app['client_session'] = aiohttp.ClientSession(
         connector=conn, request_class=ProxyClientRequest, raise_for_status=True
     )
-    app['check_semaphore'] = asyncio.Semaphore(100)
-    app['parse_semaphore'] = asyncio.Semaphore(20)
+    app['check_semaphore'] = asyncio.Semaphore(settings.CHECK_SEMAPHORE)
+    app['parse_semaphore'] = asyncio.Semaphore(settings.PARSE_SEMAPHORE)
     app['db'] = await init_db()
+    app.router.add_get("/", get_proxies)
     return app
 
 

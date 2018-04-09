@@ -27,9 +27,9 @@ def setup_logging(verbose=False):
                 'propagate': True,
                 'handlers': ['console'],
             },
-            # 'aiohttp': {
-            #     'level': 'WARNING',
-            # },
+            'aiohttp': {
+                'level': 'WARNING',
+            },
         },
     })
 
