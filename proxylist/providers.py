@@ -27,7 +27,10 @@ class Provider:
                 for path in paths
             ]
         self.logger = logging.getLogger(f'proxylist.provider')
-        self.semaphore = semaphore
+        if semaphore is None:
+            self.semaphore = asyncio.Semaphore(5)
+        else:
+            self.semaphore = semaphore
         self.timeout = timeout
 
     async def get_proxies(self):

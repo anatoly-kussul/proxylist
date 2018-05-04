@@ -6,8 +6,132 @@ from random import shuffle
 import aiohttp
 import async_timeout
 import pymongo
+from aiosocksy.connector import ProxyConnector, ProxyClientRequest
 
 from proxylist import settings
+
+
+class Checker:
+    URL = ''
+
+    def __init__(self, semaphore=None, timeout=5):
+        if semaphore is None:
+            self.semaphore = asyncio.Semaphore(5)
+        else:
+            self.semaphore = semaphore
+        self.logger = logging.getLogger('proxylist.checker')
+        self.timeout = timeout
+
+    async def check_proxy(self, ip, port):
+        pings = []
+        protocols = []
+        country = None
+        country_code = None
+        external_ip = None
+        for protocol in settings.PROTOCOLS:
+            proxy_str = f'{protocol}://{ip}:{port}'
+            self.logger.debug(f'Checking {proxy_str}')
+            result = await self.get_response(proxy_str)
+            country = result['country']
+            country_code = result['country_code']
+            external_ip = result['external_ip']
+            pings.append(result['ping'])
+            protocols.append(protocol)
+        return {
+            'ping': sum(pings)/len(pings) if pings else None,
+            'protocols': protocols,
+            'country': country,
+            'country_code': country_code,
+            'external_ip': external_ip,
+        }
+
+    async def get_response(self, proxy_str):
+        conn = ProxyConnector(remote_resolve=False)
+        async with self.semaphore:
+            time_start = time.time()
+            async with aiohttp.ClientSession(
+                    connector=conn, request_class=ProxyClientRequest, raise_for_status=True) as session:
+                async with session.get(self.URL, timeout=self.timeout, proxy=proxy_str) as response:
+                    result = await self.parse_response(response)
+                    ping = time.time() - time_start
+                    result['ping'] = ping
+                    return result
+
+    async def parse_response(self, response):
+        """
+        :param response:
+        :return: (external ip, country, country code)
+        """
+        raise NotImplementedError
+
+
+class CheckerIpApi(Checker):
+    URL = 'http://ip-api.com/json'
+
+    async def parse_response(self, response):
+        response_dict = await response.json()
+        return {
+            'country': response_dict['country'],
+            'country_code': response_dict['country_code'],
+            'external_ip': response_dict['query'],
+        }
+
+
+class CheckerIfConfig(Checker):
+    URL = 'https://ifconfig.co/json'
+
+    async def parse_response(self, response):
+        response_dict = await response.json()
+        return {
+            'country': response_dict['country'],
+            'country_code': response_dict['country_iso'],
+            'external_ip': response_dict['ip'],
+        }
+
+
+class CheckerMyIP(Checker):
+    URL = 'http://api.myip.com/'
+
+    async def parse_response(self, response):
+        response_dict = await response.json()
+        return {
+            'country': response_dict['country'],
+            'country_code': response_dict['cc'],
+            'external_ip': response_dict['ip'],
+        }
+
+
+class CheckerApiIp(Checker):
+    URL = 'https://api.ip.sb/geoip'
+
+    async def parse_response(self, response):
+        response_dict = await response.json()
+        return {
+            'country': response_dict['country'],
+            'country_code': response_dict['country_code'],
+            'external_ip': response_dict['ip'],
+        }
+
+
+class CheckerWTF(Checker):
+    URL = 'https://wtfismyip.com/json'
+
+    async def parse_response(self, response):
+        response_dict = await response.json()
+        return {
+            'country': response_dict['YourFuckingLocation'].rsplit(',', maxsplit=1)[1].strip(),
+            'country_code': response_dict['YourFuckingCountryCode'],
+            'external_ip': response_dict['YourFuckingIPAddress'],
+        }
+
+
+CHECKERS = [
+    CheckerIfConfig(),
+    CheckerIpApi(),
+    CheckerMyIP(),
+    CheckerWTF(),
+    CheckerApiIp(),
+]
 
 
 async def check_ws_support(proxy, app):
