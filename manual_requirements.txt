@@ -3,3 +3,8 @@ aiosocksy==0.1
 flake8==3.5.0
 motor==1.2.1
 colorlog==3.1.2
+pytest==3.5.1
+coverage==4.5.1
+pytest-asyncio==0.8.0
+pytest-freezegun==0.2.0
+asynctest==0.12.0

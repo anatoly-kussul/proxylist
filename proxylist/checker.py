@@ -68,14 +68,15 @@ async def check_request(proxy, app):
     session = app['client_session']
     urls = settings.CHECK_URLS[:]
     shuffle(urls)
+    ip = proxy.split(':')[1].replace('/', '')
     error = None
     for url in urls:
         request_start = time.time()
         try:
             async with session.get(url, proxy=proxy, timeout=2) as response:
                 body = await response.text()
-                # if ip not in body:
-                #     raise RuntimeError(f'ip \'{ip}\' not found in body ({body})')
+                if ip not in body:
+                    raise RuntimeError(f'ip \'{ip}\' not found in body ({body})')
         except asyncio.CancelledError:
             raise
         except Exception as e:
@@ -89,13 +90,11 @@ async def check_request(proxy, app):
 
 
 async def check_proxy(ip, port, app):
-    session = app['client_session']
     pings = []
     types = []
     ws_support = []
 
     for protocol in settings.PROTOCOLS:
-        url = settings.CHECK_URLS[0]
         proxy = f'{protocol}://{ip}:{port}'
         logging.debug(f'Checking {proxy}')
         async with app['check_semaphore']:
