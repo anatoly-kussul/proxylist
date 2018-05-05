@@ -72,8 +72,12 @@ async def check_request(proxy, app):
     for url in urls:
         request_start = time.time()
         try:
-            async with session.get(url, proxy=proxy, timeout=2) as response:
-                body = await response.text()
+            with async_timeout.timeout(2):
+                async with session.get(url, proxy=proxy, timeout=2) as response:
+                    body = await response.text()
+                    if not body:
+                        raise RuntimeError('Empty body')
+                # ip = proxy.split(':')[1].replace('/', '')
                 # if ip not in body:
                 #     raise RuntimeError(f'ip \'{ip}\' not found in body ({body})')
         except asyncio.CancelledError:
@@ -89,13 +93,11 @@ async def check_request(proxy, app):
 
 
 async def check_proxy(ip, port, app):
-    session = app['client_session']
     pings = []
     types = []
     ws_support = []
 
     for protocol in settings.PROTOCOLS:
-        url = settings.CHECK_URLS[0]
         proxy = f'{protocol}://{ip}:{port}'
         logging.debug(f'Checking {proxy}')
         async with app['check_semaphore']:
@@ -136,11 +138,12 @@ async def get_proxies_for_check(app):
     new_proxies = await proxy_collection.find({'last_check': None}).limit(limit).to_list(None)
     proxies_to_check.extend(new_proxies)
 
-    limit = min(settings.CHECK_TOTAL_MAX - len(proxies_to_check), settings.CHECK_OLD_MAX)
-    old_dead_proxies = await proxy_collection.find(
-        {'active': False, 'negative_checks_in_a_row': {'$lt': settings.MAX_NEGATIVE_CHECKS_IN_A_ROW}}
-    ).sort('total_checks', pymongo.ASCENDING).limit(limit).to_list(None)
-    proxies_to_check.extend(old_dead_proxies)
+    # limit = min(settings.CHECK_TOTAL_MAX - len(proxies_to_check), settings.CHECK_OLD_MAX)
+    # old_dead_proxies = await proxy_collection.find(
+    #     {'active': False, 'negative_checks_in_a_row': {'$lt': settings.MAX_NEGATIVE_CHECKS_IN_A_ROW}}
+    # ).sort('total_checks', pymongo.ASCENDING).limit(limit).to_list(None)
+    # proxies_to_check.extend(old_dead_proxies)
+    old_dead_proxies = []
 
     logging.info(
         f'Checking {len(proxies_to_check)} proxies. '

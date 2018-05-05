@@ -17,4 +17,4 @@ async def get_proxies(request):
             'ping': 1,
         }
     ).to_list(None)
-    return json_response(list(proxies))
+    return json_response([proxy for proxy in proxies if 'http' in proxy['types']])

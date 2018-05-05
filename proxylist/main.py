@@ -45,7 +45,7 @@ async def init_db():
 
 
 def main():
-    setup_logging()
+    setup_logging(verbose=True)
     loop = asyncio.get_event_loop()
     app = loop.run_until_complete(init_app(loop=loop))
     app['proxy_parser'] = run_coro_in_background(periodic(period=settings.PARSE_PERIOD)(parse_proxies)(app), loop=loop)
