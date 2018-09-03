@@ -1,5 +1,5 @@
-aiohttp==3.1.1
-aiosocksy==0.1
+aiohttp==3.4.2
+aiosocksy==0.1.2
 flake8==3.5.0
 motor==1.2.1
 colorlog==3.1.2
