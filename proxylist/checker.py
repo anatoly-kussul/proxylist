@@ -13,8 +13,8 @@ from proxylist import settings
 async def check_ws_support(proxy, app):
     session = app['client_session']
     try:
-        ws_url = settings.WS_ECHO_SERVERS[0]
         with async_timeout.timeout(5):
+            ws_url = settings.WS_ECHO_SERVERS[0]
             async with session.ws_connect(
                     ws_url, heartbeat=1, receive_timeout=5, proxy=proxy,
             ) as ws:
@@ -94,8 +94,8 @@ async def check_proxy(ip, port, app):
     types = []
     ws_support = []
 
+    url = settings.CHECK_URLS[0]
     for protocol in settings.PROTOCOLS:
-        url = settings.CHECK_URLS[0]
         proxy = f'{protocol}://{ip}:{port}'
         logging.debug(f'Checking {proxy}')
         async with app['check_semaphore']:
